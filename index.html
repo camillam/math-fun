@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bryd Koden! 🔐</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #fce7f3 0%, #f3e8ff 50%, #e0e7ff 100%);
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Digit box styling with cross-out effect for red */
+        .digit-box {
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .digit-color-none {
+            background-color: #ffffff;
+            color: #374151;
+            border-color: #cbd5e1;
+        }
+
+        .digit-color-green {
+            background-color: #86efac;
+            color: #14532d;
+            border-color: #22c55e;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+        }
+
+        .digit-color-yellow {
+            background-color: #fde047;
+            color: #713f12;
+            border-color: #eab308;
+            box-shadow: 0 0 10px rgba(234, 179, 8, 0.4);
+        }
+
+        .digit-color-red {
+            background-color: #fca5a5;
+            color: #7f1d1d;
+            border-color: #ef4444;
+            opacity: 0.75;
+        }
+
+        .digit-color-red::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -10%;
+            width: 120%;
+            height: 4px;
+            background-color: #dc2626;
+            transform: rotate(-25deg);
+            border-radius: 2px;
+        }
+
+        /* Shaking animation for wrong guess */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+
+        .animate-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        /* Bounce animation for lock icon */
+        @keyframes pulse-lock {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .pulse-lock {
+            animation: pulse-lock 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12 text-slate-800">
+    <div class="max-w-md mx-auto px-4 pt-6 flex flex-col items-center">
+        <!-- Header -->
+        <header class="text-center mb-4 w-full">
+            <div class="inline-block bg-white/80 backdrop-blur px-5 py-2 rounded-full shadow-md border-2 border-pink-300 mb-2">
+                <h1 class="text-2xl sm:text-3xl font-bold text-pink-600 flex items-center justify-center gap-2">
+                    <span>🔐</span> Bryd Koden! <span>✨</span>
+                </h1>
+            </div>
+            <p class="text-xs sm:text-sm text-purple-700 font-medium">
+                Brug din logik til at åbne den hemmelige lås
+            </p>
+        </header>
+
+        <!-- Color Legend / Interactive Tool Selector -->
+        <div class="w-full bg-white/90 backdrop-blur rounded-2xl p-3 shadow-lg border-2 border-purple-200 mb-4">
+            <div class="text-xs font-semibold text-purple-800 mb-2 text-center flex items-center justify-center gap-1">
+                💡 <span>Klik på tallene i sporet for at skifte farve:</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center text-xs font-bold">
+                <div class="flex items-center justify-center gap-1 bg-green-100 border border-green-400 text-green-800 py-1.5 px-2 rounded-xl">
+                    <span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span>
+                    <span>Rigtig plads</span>
+                </div>
+                <div class="flex items-center justify-center gap-1 bg-yellow-100 border border-yellow-400 text-yellow-800 py-1.5 px-2 rounded-xl">
+                    <span class="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span>
+                    <span>Forkert plads</span>
+                </div>
+                <div class="flex items-center justify-center gap-1 bg-red-100 border border-red-400 text-red-800 py-1.5 px-2 rounded-xl relative overflow-hidden">
+                    <span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span>
+                    <span class="line-through">Ikke med</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clues Container -->
+        <div id="clues-container" class="w-full space-y-3 mb-6">
+            <!-- Dynamic clues injected here -->
+        </div>
+
+        <!-- Code Entry Section -->
+        <div class="w-full bg-white rounded-3xl p-5 shadow-xl border-4 border-purple-300 flex flex-col items-center mb-6">
+            <div class="flex items-center justify-center gap-3 mb-3">
+                <span id="lock-icon" class="text-4xl pulse-lock">🔒</span>
+                <span class="text-lg font-bold text-purple-900">Hvad er koden?</span>
+            </div>
+
+            <!-- Code Input Displays -->
+            <div id="input-boxes-container" class="flex gap-3 mb-5">
+                <button onclick="setActiveInput(0)" id="code-box-0" class="w-14 h-16 sm:w-16 sm:h-20 text-3xl font-bold bg-purple-50 rounded-2xl border-4 border-purple-400 flex items-center justify-center text-purple-900 shadow-inner focus:outline-none transition transform active:scale-95">_</button>
+                <button onclick="setActiveInput(1)" id="code-box-1" class="w-14 h-16 sm:w-16 sm:h-20 text-3xl font-bold bg-purple-50 rounded-2xl border-2 border-purple-200 flex items-center justify-center text-purple-900 shadow-inner focus:outline-none transition transform active:scale-95">_</button>
+                <button onclick="setActiveInput(2)" id="code-box-2" class="w-14 h-16 sm:w-16 sm:h-20 text-3xl font-bold bg-purple-50 rounded-2xl border-2 border-purple-200 flex items-center justify-center text-purple-900 shadow-inner focus:outline-none transition transform active:scale-95">_</button>
+            </div>
+
+            <!-- On-Screen Keypad for Phones -->
+            <div class="grid grid-cols-5 gap-2 w-full max-w-xs mb-4">
+                <button onclick="pressKey('1')" class="h-11 bg-pink-100 hover:bg-pink-200 active:bg-pink-300 text-pink-900 font-bold text-xl rounded-xl border-b-4 border-pink-300 shadow active:border-b-0 transition">1</button>
+                <button onclick="pressKey('2')" class="h-11 bg-pink-100 hover:bg-pink-200 active:bg-pink-300 text-pink-900 font-bold text-xl rounded-xl border-b-4 border-pink-300 shadow active:border-b-0 transition">2</button>
+                <button onclick="pressKey('3')" class="h-11 bg-pink-100 hover:bg-pink-200 active:bg-pink-300 text-pink-900 font-bold text-xl rounded-xl border-b-4 border-pink-300 shadow active:border-b-0 transition">3</button>
+                <button onclick="pressKey('4')" class="h-11 bg-pink-100 hover:bg-pink-200 active:bg-pink-300 text-pink-900 font-bold text-xl rounded-xl border-b-4 border-pink-300 shadow active:border-b-0 transition">4</button>
+                <button onclick="pressKey('5')" class="h-11 bg-pink-100 hover:bg-pink-200 active:bg-pink-300 text-pink-900 font-bold text-xl rounded-xl border-b-4 border-pink-300 shadow active:border-b-0 transition">5</button>
+                <button onclick="pressKey('6')" class="h-11 bg-pink-100 hover:bg-pink-200 active:bg-pink-300 text-pink-900 font-bold text-xl rounded-xl border-b-4 border-pink-300 shadow active:border-b-0 transition">6</button>
+                <button onclick="pressKey('7')" class="h-11 bg-pink-100 hover:bg-pink-200 active:bg-pink-300 text-pink-900 font-bold text-xl rounded-xl border-b-4 border-pink-300 shadow active:border-b-0 transition">7</button>
+                <button onclick="pressKey('8')" class="h-11 bg-pink-100 hover:bg-pink-200 active:bg-pink-300 text-pink-900 font-bold text-xl rounded-xl border-b-4 border-pink-300 shadow active:border-b-0 transition">8</button>
+                <button onclick="pressKey('9')" class="h-11 bg-pink-100 hover:bg-pink-200 active:bg-pink-300 text-pink-900 font-bold text-xl rounded-xl border-b-4 border-pink-300 shadow active:border-b-0 transition">9</button>
+                <button onclick="pressKey('0')" class="h-11 bg-pink-100 hover:bg-pink-200 active:bg-pink-300 text-pink-900 font-bold text-xl rounded-xl border-b-4 border-pink-300 shadow active:border-b-0 transition">0</button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-3 w-full max-w-xs">
+                <button onclick="backspace()" class="w-1/3 py-3 bg-slate-200 hover:bg-slate-300 active:bg-slate-400 text-slate-700 font-bold rounded-2xl shadow border-b-4 border-slate-400 active:border-b-0 transition flex items-center justify-center text-lg">
+                    ⌫
+                </button>
+                <button onclick="checkCode()" class="w-2/3 py-3 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white font-bold text-lg rounded-2xl shadow-lg border-b-4 border-emerald-700 active:border-b-0 transition flex items-center justify-center gap-2">
+                    <span>Lås op!</span> 🔑
+                </button>
+            </div>
+            
+            <!-- Feedback Message -->
+            <div id="feedback-msg" class="mt-3 text-center font-bold text-sm min-h-[24px]"></div>
+        </div>
+
+        <!-- New Game / Reset Tools -->
+        <div class="flex justify-between w-full max-w-md px-2">
+            <button onclick="resetHighlights()" class="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold text-xs rounded-xl shadow transition border border-purple-300 flex items-center gap-1">
+                🧹 Nulstil farver
+            </button>
+            <button onclick="startNewGame()" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 active:bg-pink-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-1 border-b-2 border-pink-700">
+                <span>✨ Næste opgave</span> ➔
+            </button>
+        </div>
+    </div>
+
+    <!-- Win Modal Dialog -->
+    <div id="win-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl border-4 border-yellow-300 transform transition-all scale-100">
+            <div class="text-6xl mb-2">🎉🔓⭐</div>
+            <h2 class="text-2xl font-bold text-pink-600 mb-2">Super Flot!</h2>
+            <p class="text-slate-600 font-medium mb-4">Du knækkede koden og låste op!</p>
+            <div id="final-code-display" class="inline-block bg-purple-100 border-2 border-purple-300 text-purple-900 font-bold text-2xl px-6 py-2 rounded-2xl mb-6">
+                <!-- Solved Code -->
+            </div>
+            <button onclick="closeModalAndNewGame()" class="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold text-lg rounded-2xl shadow-lg border-b-4 border-purple-800 active:border-b-0 transition">
+                Prøv en ny kode! 🚀
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // State variables
+        let secretCode = [];
+        let clues = [];
+        let currentInputs = ['', '', ''];
+        let activeInputIndex = 0;
+        let digitColorStates = {}; // key: "clueIndex-digitIndex", value: 'none' | 'green' | 'yellow' | 'red'
+
+        // Color cycle order
+        const colorCycle = ['none', 'green', 'yellow', 'red'];
+
+        // On Load
+        window.onload = function() {
+            startNewGame();
+        };
+
+        // Generate a valid secret code and consistent clues
+        function startNewGame() {
+            secretCode = generateUniqueDigits(3);
+            clues = generateCluesForCode(secretCode);
+            digitColorStates = {};
+            currentInputs = ['', '', ''];
+            activeInputIndex = 0;
+            
+            updateInputBoxes();
+            renderClues();
+            
+            // Reset Lock visual
+            document.getElementById('lock-icon').innerText = '🔒';
+            document.getElementById('feedback-msg').innerText = '';
+            document.getElementById('win-modal').classList.add('hidden');
+        }
+
+        function generateUniqueDigits(count) {
+            const digits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+            const result = [];
+            for (let i = 0; i < count; i++) {
+                const randIdx = Math.floor(Math.random() * digits.length);
+                result.push(digits[randIdx]);
+                digits.splice(randIdx, 1);
+            }
+            return result;
+        }
+
+        // Generate clues similar to Danish workbook
+        function generateCluesForCode(code) {
+            let cluesList = [];
+            let attempts = 0;
+
+            while (attempts < 100) {
+                cluesList = [];
+                attempts++;
+
+                // 1) Clue with 1 correct digit in right place
+                const clue1Guess = createGuessWithMatches(code, 1, 0);
+                if (clue1Guess) cluesList.push({ guess: clue1Guess, text: "ét tal er korrekt og placeret rigtigt." });
+
+                // 2) Clue with 2 correct digits, both wrong place OR 1 right place
+                const clue2Type = Math.random() > 0.5;
+                if (clue2Type) {
+                    const clue2Guess = createGuessWithMatches(code, 0, 2);
+                    if (clue2Guess) cluesList.push({ guess: clue2Guess, text: "to tal er korrekte, men begge placeret forkert." });
+                } else {
+                    const clue2Guess = createGuessWithMatches(code, 1, 1);
+                    if (clue2Guess) cluesList.push({ guess: clue2Guess, text: "to tal er korrekte, men kun ét er placeret korrekt." });
+                }
+
+                // 3) Clue with 2 correct digits (variation) or 3 wrong placement
+                const clue3Guess = createGuessWithMatches(code, 0, 3) || createGuessWithMatches(code, 0, 2);
+                if (clue3Guess) {
+                    if (getCorrectCount(code, clue3Guess) === 3) {
+                        cluesList.push({ guess: clue3Guess, text: "tre tal er korrekte, men ingen er placeret rigtigt." });
+                    } else {
+                        cluesList.push({ guess: clue3Guess, text: "to tal er korrekte, men ingen er placeret rigtigt." });
+                    }
+                }
+
+                // 4) Clue with NO correct digits
+                const wrongDigits = [0,1,2,3,4,5,6,7,8,9].filter(d => !code.includes(d));
+                const clue4Guess = shuffleArray(wrongDigits).slice(0, 3);
+                if (clue4Guess.length === 3) {
+                    cluesList.push({ guess: clue4Guess, text: "ingen tal er korrekte." });
+                }
+
+                if (cluesList.length >= 4) {
+                    break;
+                }
+            }
+
+            return cluesList;
+        }
+
+        function createGuessWithMatches(code, rightSpotTarget, wrongSpotTarget) {
+            const allDigits = [0,1,2,3,4,5,6,7,8,9];
+            const otherDigits = allDigits.filter(d => !code.includes(d));
+            
+            // Try to construct a guess that satisfies parameters
+            for (let tries = 0; tries < 50; tries++) {
+                let guess = [null, null, null];
+                let usedCodeIndices = new Set();
+                let availableSlots = [0, 1, 2];
+
+                // Place exact right spots
+                for (let i = 0; i < rightSpotTarget; i++) {
+                    if (availableSlots.length === 0) break;
+                    let slotIdx = Math.floor(Math.random() * availableSlots.length);
+                    let slot = availableSlots[slotIdx];
+                    availableSlots.splice(slotIdx, 1);
+
+                    // Find code index for this slot or another unpicked
+                    let codeIdx = slot;
+                    if (usedCodeIndices.has(codeIdx)) {
+                        const unused = [0,1,2].filter(x => !usedCodeIndices.has(x));
+                        if (unused.length === 0) break;
+                        codeIdx = unused[0];
+                    }
+                    usedCodeIndices.add(codeIdx);
+                    guess[slot] = code[codeIdx];
+                }
+
+                // Place wrong spot code numbers
+                for (let i = 0; i < wrongSpotTarget; i++) {
+                    if (availableSlots.length === 0) break;
+                    let unusedCodeIndices = [0,1,2].filter(x => !usedCodeIndices.has(x));
+                    if (unusedCodeIndices.length === 0) break;
+
+                    let codeIdx = unusedCodeIndices[Math.floor(Math.random() * unusedCodeIndices.length)];
+                    
+                    // Filter slots that are NOT equal to codeIdx
+                    let validSlots = availableSlots.filter(s => s !== codeIdx);
+                    if (validSlots.length === 0) break;
+
+                    let slot = validSlots[Math.floor(Math.random() * validSlots.length)];
+                    availableSlots.splice(availableSlots.indexOf(slot), 1);
+                    usedCodeIndices.add(codeIdx);
+                    guess[slot] = code[codeIdx];
+                }
+
+                // Fill remaining with wrong numbers
+                let shuffledWrong = shuffleArray([...otherDigits]);
+                for (let i = 0; i < guess.length; i++) {
+                    if (guess[i] === null) {
+                        if (shuffledWrong.length === 0) break;
+                        guess[i] = shuffledWrong.pop();
+                    }
+                }
+
+                if (guess.every(x => x !== null) && new Set(guess).size === 3) {
+                    // Double check matches
+                    const stats = evaluateGuess(code, guess);
+                    if (stats.rightSpot === rightSpotTarget && stats.wrongSpot === wrongSpotTarget) {
+                        return guess;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function evaluateGuess(code, guess) {
+            let rightSpot = 0;
+            let wrongSpot = 0;
+            for (let i = 0; i < 3; i++) {
+                if (guess[i] === code[i]) {
+                    rightSpot++;
+                } else if (code.includes(guess[i])) {
+                    wrongSpot++;
+                }
+            }
+            return { rightSpot, wrongSpot };
+        }
+
+        function getCorrectCount(code, guess) {
+            return guess.filter(d => code.includes(d)).length;
+        }
+
+        function shuffleArray(arr) {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        // Render clue rows with clickable color boxes
+        function renderClues() {
+            const container = document.getElementById('clues-container');
+            container.innerHTML = '';
+
+            clues.forEach((clue, clueIdx) => {
+                const row = document.createElement('div');
+                row.className = "flex items-center bg-white/90 backdrop-blur rounded-2xl p-2.5 shadow-md border-2 border-purple-100 gap-3";
+
+                // Digit Boxes
+                const digitsContainer = document.createElement('div');
+                digitsContainer.className = "flex gap-1.5 shrink-0";
+
+                clue.guess.forEach((num, digitIdx) => {
+                    const key = `${clueIdx}-${digitIdx}`;
+                    const currentColor = digitColorStates[key] || 'none';
+
+                    const box = document.createElement('button');
+                    box.type = "button";
+                    box.className = `digit-box w-9 h-11 sm:w-10 sm:h-12 text-xl font-bold rounded-xl border-2 flex items-center justify-center cursor-pointer font-mono text-slate-800 digit-color-${currentColor}`;
+                    box.innerText = num;
+                    box.onclick = () => cycleDigitColor(clueIdx, digitIdx);
+
+                    digitsContainer.appendChild(box);
+                });
+
+                // Clue Text
+                const textEl = document.createElement('div');
+                textEl.className = "text-xs sm:text-sm font-semibold text-slate-700 leading-tight flex-1";
+                textEl.innerText = clue.text;
+
+                row.appendChild(digitsContainer);
+                row.appendChild(textEl);
+                container.appendChild(row);
+            });
+        }
+
+        // Interactive Color Cycling
+        function cycleDigitColor(clueIdx, digitIdx) {
+            const key = `${clueIdx}-${digitIdx}`;
+            const currentColor = digitColorStates[key] || 'none';
+            const nextIdx = (colorCycle.indexOf(currentColor) + 1) % colorCycle.length;
+            digitColorStates[key] = colorCycle[nextIdx];
+            renderClues();
+        }
+
+        function resetHighlights() {
+            digitColorStates = {};
+            renderClues();
+        }
+
+        // Keypad Controls
+        function setActiveInput(index) {
+            activeInputIndex = index;
+            updateInputBoxes();
+        }
+
+        function pressKey(digit) {
+            if (activeInputIndex < 3) {
+                currentInputs[activeInputIndex] = digit;
+                if (activeInputIndex < 2) {
+                    activeInputIndex++;
+                }
+                updateInputBoxes();
+            }
+        }
+
+        function backspace() {
+            if (currentInputs[activeInputIndex] !== '') {
+                currentInputs[activeInputIndex] = '';
+            } else if (activeInputIndex > 0) {
+                activeInputIndex--;
+                currentInputs[activeInputIndex] = '';
+            }
+            updateInputBoxes();
+        }
+
+        function updateInputBoxes() {
+            for (let i = 0; i < 3; i++) {
+                const box = document.getElementById(`code-box-${i}`);
+                box.innerText = currentInputs[i] !== '' ? currentInputs[i] : '_';
+
+                if (i === activeInputIndex) {
+                    box.classList.add('border-purple-500', 'bg-purple-100', 'ring-2', 'ring-purple-300');
+                    box.classList.remove('border-purple-200', 'bg-purple-50');
+                } else {
+                    box.classList.remove('border-purple-500', 'bg-purple-100', 'ring-2', 'ring-purple-300');
+                    box.classList.add('border-purple-200', 'bg-purple-50');
+                }
+            }
+        }
+
+        // Check guess logic
+        function checkCode() {
+            const userAttempt = currentInputs.join('');
+            const feedback = document.getElementById('feedback-msg');
+
+            if (userAttempt.length < 3) {
+                feedback.innerText = "⚠️ Indtast alle 3 tal!";
+                feedback.className = "mt-3 text-center font-bold text-sm text-amber-600";
+                return;
+            }
+
+            const isCorrect = currentInputs.every((val, idx) => parseInt(val) === secretCode[idx]);
+
+            if (isCorrect) {
+                document.getElementById('lock-icon').innerText = '🔓';
+                feedback.innerText = "🎉 Rigtigt svar!";
+                feedback.className = "mt-3 text-center font-bold text-sm text-green-600";
+
+                // Confetti Explosion
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+
+                // Show Modal
+                setTimeout(() => {
+                    document.getElementById('final-code-display').innerText = `Koden var: ${secretCode.join('')}`;
+                    document.getElementById('win-modal').classList.remove('hidden');
+                }, 500);
+
+            } else {
+                feedback.innerText = "❌ Forkert kode, prøv igen!";
+                feedback.className = "mt-3 text-center font-bold text-sm text-red-500";
+                
+                // Shake input container
+                const container = document.getElementById('input-boxes-container');
+                container.classList.add('animate-shake');
+                setTimeout(() => container.classList.remove('animate-shake'), 500);
+            }
+        }
+
+        function closeModalAndNewGame() {
+            document.getElementById('win-modal').classList.add('hidden');
+            startNewGame();
+        }
+    </script>
+</body>
+</html>
