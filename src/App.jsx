@@ -216,6 +216,12 @@ function App() {
         <p className="text-xs sm:text-sm text-purple-700 font-medium">Brug din logik til at åbne den hemmelige lås</p>
       </header>
 
+      <div role="group" aria-label="Sværhedsgrad" className="inline-flex gap-1.5 bg-white/80 p-1.5 rounded-2xl shadow-md border border-purple-200 mb-4">
+        <button type="button" aria-pressed="true" className="px-4 py-2 bg-pink-500 text-white font-bold text-sm rounded-xl shadow">Let</button>
+        <button type="button" disabled title="Kommer snart" className="px-4 py-2 bg-slate-100 text-slate-400 font-semibold text-sm rounded-xl cursor-not-allowed">Mellem</button>
+        <button type="button" disabled title="Kommer snart" className="px-4 py-2 bg-slate-100 text-slate-400 font-semibold text-sm rounded-xl cursor-not-allowed">Svær</button>
+      </div>
+
       <div className="w-full bg-white/90 backdrop-blur rounded-2xl p-3 shadow-lg border-2 border-purple-200 mb-4">
         <div className="text-xs font-semibold text-purple-800 mb-2 text-center flex items-center justify-center gap-1">
           💡 <span>Klik på tallene i sporet for at skifte farve:</span>
