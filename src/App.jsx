@@ -17,7 +17,7 @@ function generateUniqueDigits(count) {
 function evaluateGuess(code, guess) {
   let rightSpot = 0;
   let wrongSpot = 0;
-  for (let index = 0; index < 3; index += 1) {
+  for (let index = 0; index < code.length; index += 1) {
     if (guess[index] === code[index]) {
       rightSpot += 1;
     } else if (code.includes(guess[index])) {
@@ -42,11 +42,12 @@ function shuffleArray(array) {
 
 function createGuessWithMatches(code, rightSpotTarget, wrongSpotTarget) {
   const otherDigits = ALL_DIGITS.filter((digit) => !code.includes(digit));
+  const codeIndices = code.map((_, index) => index);
 
   for (let attempt = 0; attempt < 50; attempt += 1) {
-    const guess = [null, null, null];
+    const guess = Array(code.length).fill(null);
     const usedCodeIndices = new Set();
-    const availableSlots = [0, 1, 2];
+    const availableSlots = [...codeIndices];
 
     for (let index = 0; index < rightSpotTarget; index += 1) {
       if (availableSlots.length === 0) break;
@@ -56,7 +57,7 @@ function createGuessWithMatches(code, rightSpotTarget, wrongSpotTarget) {
 
       let codeIndex = slot;
       if (usedCodeIndices.has(codeIndex)) {
-        const unused = [0, 1, 2].filter((value) => !usedCodeIndices.has(value));
+        const unused = codeIndices.filter((value) => !usedCodeIndices.has(value));
         if (unused.length === 0) break;
         codeIndex = unused[0];
       }
@@ -66,7 +67,7 @@ function createGuessWithMatches(code, rightSpotTarget, wrongSpotTarget) {
 
     for (let index = 0; index < wrongSpotTarget; index += 1) {
       if (availableSlots.length === 0) break;
-      const unusedCodeIndices = [0, 1, 2].filter((value) => !usedCodeIndices.has(value));
+      const unusedCodeIndices = codeIndices.filter((value) => !usedCodeIndices.has(value));
       if (unusedCodeIndices.length === 0) break;
 
       const codeIndex = unusedCodeIndices[Math.floor(Math.random() * unusedCodeIndices.length)];
@@ -87,7 +88,7 @@ function createGuessWithMatches(code, rightSpotTarget, wrongSpotTarget) {
       }
     }
 
-    if (guess.every((digit) => digit !== null) && new Set(guess).size === 3) {
+    if (guess.every((digit) => digit !== null) && new Set(guess).size === code.length) {
       const stats = evaluateGuess(code, guess);
       if (stats.rightSpot === rightSpotTarget && stats.wrongSpot === wrongSpotTarget) {
         return guess;
@@ -127,7 +128,7 @@ function generateCluesForCode(code) {
 
     const wrongDigits = ALL_DIGITS.filter((digit) => !code.includes(digit));
     const clue4Guess = shuffleArray(wrongDigits).slice(0, 3);
-    if (clue4Guess.length === 3) clues.push({ guess: clue4Guess, text: 'ingen tal er korrekte.' });
+    if (clue4Guess.length === code.length) clues.push({ guess: clue4Guess, text: 'ingen tal er korrekte.' });
 
     if (clues.length >= 4) break;
   }
@@ -135,13 +136,40 @@ function generateCluesForCode(code) {
   return clues;
 }
 
-function createGame() {
-  const secretCode = generateUniqueDigits(3);
-  return { secretCode, clues: generateCluesForCode(secretCode) };
+function generateHardCluesForCode(code) {
+  const clueRules = [
+    { rightSpot: 1, wrongSpot: 1, text: 'to tal er korrekte, og ét af dem er placeret rigtigt.' },
+    { rightSpot: 0, wrongSpot: 2, text: 'to tal er korrekte, men begge placeret forkert.' },
+    { rightSpot: 2, wrongSpot: 0, text: 'to tal er korrekte, og de er begge placeret korrekt.' },
+    { rightSpot: 0, wrongSpot: 3, text: 'tre tal er korrekte, men ingen er placeret rigtigt.' },
+    { rightSpot: 0, wrongSpot: 0, text: 'ingen tal er korrekte.' },
+  ];
+
+  let attempts = 0;
+  while (attempts < 100) {
+    attempts += 1;
+    const clues = clueRules.map((rule) => ({
+      guess: createGuessWithMatches(code, rule.rightSpot, rule.wrongSpot),
+      text: rule.text,
+    }));
+    if (clues.every((clue) => clue.guess)) return clues;
+  }
+
+  return generateHardCluesForCode(code);
+}
+
+function createGame(difficulty = 'easy') {
+  const codeLength = difficulty === 'hard' ? 4 : 3;
+  const secretCode = generateUniqueDigits(codeLength);
+  const clues = difficulty === 'hard'
+    ? generateHardCluesForCode(secretCode)
+    : generateCluesForCode(secretCode);
+  return { secretCode, clues };
 }
 
 function App() {
-  const [game, setGame] = useState(createGame);
+  const [difficulty, setDifficulty] = useState('easy');
+  const [game, setGame] = useState(() => createGame('easy'));
   const [currentInputs, setCurrentInputs] = useState(['', '', '']);
   const [activeInputIndex, setActiveInputIndex] = useState(0);
   const [digitColorStates, setDigitColorStates] = useState({});
@@ -150,10 +178,12 @@ function App() {
   const [showWinModal, setShowWinModal] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
 
-  function startNewGame() {
-    setGame(createGame());
+  function startNewGame(nextDifficulty = difficulty) {
+    const nextGame = createGame(nextDifficulty);
+    setDifficulty(nextDifficulty);
+    setGame(nextGame);
     setDigitColorStates({});
-    setCurrentInputs(['', '', '']);
+    setCurrentInputs(Array(nextGame.secretCode.length).fill(''));
     setActiveInputIndex(0);
     setLockOpen(false);
     setFeedback({ text: '', className: 'mt-3 text-center font-bold text-sm min-h-[24px]' });
@@ -170,9 +200,9 @@ function App() {
   }
 
   function pressKey(digit) {
-    if (activeInputIndex < 3) {
+    if (activeInputIndex < game.secretCode.length) {
       setCurrentInputs((current) => current.map((value, index) => index === activeInputIndex ? digit : value));
-      if (activeInputIndex < 2) setActiveInputIndex(activeInputIndex + 1);
+      if (activeInputIndex < game.secretCode.length - 1) setActiveInputIndex(activeInputIndex + 1);
     }
   }
 
@@ -187,8 +217,8 @@ function App() {
   }
 
   function checkCode() {
-    if (currentInputs.join('').length < 3) {
-      setFeedback({ text: '⚠️ Indtast alle 3 tal!', className: 'mt-3 text-center font-bold text-sm text-amber-600' });
+    if (currentInputs.some((value) => value === '')) {
+      setFeedback({ text: `⚠️ Indtast alle ${game.secretCode.length} tal!`, className: 'mt-3 text-center font-bold text-sm text-amber-600' });
       return;
     }
 
@@ -205,6 +235,10 @@ function App() {
     }
   }
 
+  const inputSizeClass = game.secretCode.length === 4
+    ? 'w-12 h-14 sm:w-14 sm:h-16'
+    : 'w-14 h-16 sm:w-16 sm:h-20';
+
   return (
     <div className="max-w-md mx-auto px-4 pt-6 flex flex-col items-center">
       <header className="text-center mb-4 w-full">
@@ -217,9 +251,9 @@ function App() {
       </header>
 
       <div role="group" aria-label="Sværhedsgrad" className="inline-flex gap-1.5 bg-white/80 p-1.5 rounded-2xl shadow-md border border-purple-200 mb-4">
-        <button type="button" aria-pressed="true" className="px-4 py-2 bg-pink-500 text-white font-bold text-sm rounded-xl shadow">Let</button>
+        <button type="button" aria-pressed={difficulty === 'easy'} onClick={() => startNewGame('easy')} className={`px-4 py-2 font-bold text-sm rounded-xl shadow ${difficulty === 'easy' ? 'bg-pink-500 text-white' : 'bg-slate-100 text-slate-600'}`}>Let</button>
         <button type="button" disabled title="Kommer snart" className="px-4 py-2 bg-slate-100 text-slate-400 font-semibold text-sm rounded-xl cursor-not-allowed">Mellem</button>
-        <button type="button" disabled title="Kommer snart" className="px-4 py-2 bg-slate-100 text-slate-400 font-semibold text-sm rounded-xl cursor-not-allowed">Svær</button>
+        <button type="button" aria-pressed={difficulty === 'hard'} onClick={() => startNewGame('hard')} className={`px-4 py-2 font-bold text-sm rounded-xl shadow ${difficulty === 'hard' ? 'bg-pink-500 text-white' : 'bg-slate-100 text-slate-600'}`}>Svær</button>
       </div>
 
       <div className="w-full bg-white/90 backdrop-blur rounded-2xl p-3 shadow-lg border-2 border-purple-200 mb-4">
@@ -270,7 +304,7 @@ function App() {
               type="button"
               onClick={() => setActiveInputIndex(index)}
               aria-label={`Kodeciffer ${index + 1}${value ? `: ${value}` : ''}`}
-              className={`w-14 h-16 sm:w-16 sm:h-20 text-3xl font-bold rounded-2xl ${index === 0 ? 'border-4' : 'border-2'} flex items-center justify-center text-purple-900 shadow-inner focus:outline-none transition transform active:scale-95 ${index === activeInputIndex ? 'bg-purple-100 border-purple-500 ring-2 ring-purple-300' : 'bg-purple-50 border-purple-200'}`}
+              className={`${inputSizeClass} text-3xl font-bold rounded-2xl ${index === 0 ? 'border-4' : 'border-2'} flex items-center justify-center text-purple-900 shadow-inner focus:outline-none transition transform active:scale-95 ${index === activeInputIndex ? 'bg-purple-100 border-purple-500 ring-2 ring-purple-300' : 'bg-purple-50 border-purple-200'}`}
             >
               {value || '_'}
             </button>
