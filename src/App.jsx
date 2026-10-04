@@ -40,8 +40,8 @@ function shuffleArray(array) {
   return copy;
 }
 
-function createGuessWithMatches(code, rightSpotTarget, wrongSpotTarget, requiredWrongDigit) {
-  const otherDigits = ALL_DIGITS.filter((digit) => !code.includes(digit));
+function createGuessWithMatches(code, rightSpotTarget, wrongSpotTarget, requiredWrongDigit, forbiddenWrongDigits = []) {
+  const otherDigits = ALL_DIGITS.filter((digit) => !code.includes(digit) && !forbiddenWrongDigits.includes(digit));
   const codeIndices = code.map((_, index) => index);
 
   for (let attempt = 0; attempt < 50; attempt += 1) {
@@ -144,6 +144,7 @@ function generateCluesForCode(code) {
 }
 
 function generateHardCluesForCode(code) {
+  const excludedDigits = shuffleArray(ALL_DIGITS.filter((digit) => !code.includes(digit))).slice(0, code.length);
   const clueRules = [
     { rightSpot: 1, wrongSpot: 1, text: 'to tal er korrekte, og ét af dem er placeret rigtigt.' },
     { rightSpot: 0, wrongSpot: 2, text: 'to tal er korrekte, men begge placeret forkert.' },
@@ -155,12 +156,23 @@ function generateHardCluesForCode(code) {
   let attempts = 0;
   while (attempts < 100) {
     attempts += 1;
-    const clues = clueRules.map((rule) => ({
-      guess: createGuessWithMatches(code, rule.rightSpot, rule.wrongSpot),
-      text: rule.text,
-      rightSpot: rule.rightSpot,
-      wrongSpot: rule.wrongSpot,
-    }));
+    const clues = clueRules.map((rule, index) => {
+      const guess = index === clueRules.length - 1
+        ? excludedDigits
+        : createGuessWithMatches(
+          code,
+          rule.rightSpot,
+          rule.wrongSpot,
+          undefined,
+          index === 3 ? excludedDigits : [],
+        );
+      return {
+        guess,
+        text: rule.text,
+        rightSpot: rule.rightSpot,
+        wrongSpot: rule.wrongSpot,
+      };
+    });
     if (clues.every((clue) => clue.guess)) return clues;
   }
 
