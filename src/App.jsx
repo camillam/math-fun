@@ -40,7 +40,7 @@ function shuffleArray(array) {
   return copy;
 }
 
-function createGuessWithMatches(code, rightSpotTarget, wrongSpotTarget) {
+function createGuessWithMatches(code, rightSpotTarget, wrongSpotTarget, requiredWrongDigit) {
   const otherDigits = ALL_DIGITS.filter((digit) => !code.includes(digit));
   const codeIndices = code.map((_, index) => index);
 
@@ -80,7 +80,14 @@ function createGuessWithMatches(code, rightSpotTarget, wrongSpotTarget) {
       guess[slot] = code[codeIndex];
     }
 
-    const shuffledWrong = shuffleArray([...otherDigits]);
+    const fillerSlots = guess.flatMap((digit, index) => digit === null ? [index] : []);
+    if (requiredWrongDigit !== undefined) {
+      if (fillerSlots.length === 0) continue;
+      const requiredSlot = fillerSlots.splice(Math.floor(Math.random() * fillerSlots.length), 1)[0];
+      guess[requiredSlot] = requiredWrongDigit;
+    }
+
+    const shuffledWrong = shuffleArray(otherDigits.filter((digit) => digit !== requiredWrongDigit));
     for (let index = 0; index < guess.length; index += 1) {
       if (guess[index] === null) {
         if (shuffledWrong.length === 0) break;
@@ -151,20 +158,86 @@ function generateHardCluesForCode(code) {
     const clues = clueRules.map((rule) => ({
       guess: createGuessWithMatches(code, rule.rightSpot, rule.wrongSpot),
       text: rule.text,
+      rightSpot: rule.rightSpot,
+      wrongSpot: rule.wrongSpot,
     }));
     if (clues.every((clue) => clue.guess)) return clues;
   }
 
-  return generateHardCluesForCode(code);
+  return null;
+}
+
+function generateMediumCluesForCode(code) {
+  const excludedDigits = shuffleArray(ALL_DIGITS.filter((digit) => !code.includes(digit))).slice(0, code.length);
+  const clueRules = [
+    { rightSpot: 1, wrongSpot: 0, text: 'ét tal er korrekt og placeret rigtigt.' },
+    { rightSpot: 1, wrongSpot: 1, text: 'to tal er korrekte, og ét af dem er placeret rigtigt.' },
+    { rightSpot: 2, wrongSpot: 0, text: 'to tal er korrekte, og de er begge placeret korrekt.' },
+    { rightSpot: 0, wrongSpot: 3, text: 'tre tal er korrekte, men ingen er placeret rigtigt.' },
+  ];
+  const clues = [];
+
+  for (let index = 0; index < clueRules.length; index += 1) {
+    const rule = clueRules[index];
+    const guess = createGuessWithMatches(
+      code,
+      rule.rightSpot,
+      rule.wrongSpot,
+      excludedDigits[index % excludedDigits.length],
+    );
+    if (!guess) return null;
+    clues.push({ ...rule, guess });
+  }
+
+  clues.push({
+    guess: excludedDigits,
+    text: 'ingen tal er korrekte.',
+    rightSpot: 0,
+    wrongSpot: 0,
+  });
+
+  return clues;
+}
+
+function hasUniqueSolution(codeLength, clues) {
+  let solutionCount = 0;
+
+  function search(candidate) {
+    if (candidate.length === codeLength) {
+      const matchesAllClues = clues.every((clue) => {
+        const result = evaluateGuess(candidate, clue.guess);
+        return result.rightSpot === clue.rightSpot && result.wrongSpot === clue.wrongSpot;
+      });
+      if (matchesAllClues) solutionCount += 1;
+      return solutionCount > 1;
+    }
+
+    for (const digit of ALL_DIGITS) {
+      if (candidate.includes(digit)) continue;
+      if (search([...candidate, digit])) return true;
+    }
+    return false;
+  }
+
+  search([]);
+  return solutionCount === 1;
 }
 
 function createGame(difficulty = 'easy') {
-  const codeLength = difficulty === 'hard' ? 4 : 3;
-  const secretCode = generateUniqueDigits(codeLength);
-  const clues = difficulty === 'hard'
-    ? generateHardCluesForCode(secretCode)
-    : generateCluesForCode(secretCode);
-  return { secretCode, clues };
+  if (difficulty === 'easy') {
+    const secretCode = generateUniqueDigits(3);
+    return { secretCode, clues: generateCluesForCode(secretCode) };
+  }
+
+  while (true) {
+    const secretCode = generateUniqueDigits(4);
+    const clues = difficulty === 'medium'
+      ? generateMediumCluesForCode(secretCode)
+      : generateHardCluesForCode(secretCode);
+    if (clues && hasUniqueSolution(secretCode.length, clues)) {
+      return { secretCode, clues };
+    }
+  }
 }
 
 function App() {
@@ -252,7 +325,7 @@ function App() {
 
       <div role="group" aria-label="Sværhedsgrad" className="inline-flex gap-1.5 bg-white/80 p-1.5 rounded-2xl shadow-md border border-purple-200 mb-4">
         <button type="button" aria-pressed={difficulty === 'easy'} onClick={() => startNewGame('easy')} className={`px-4 py-2 font-bold text-sm rounded-xl shadow ${difficulty === 'easy' ? 'bg-pink-500 text-white' : 'bg-slate-100 text-slate-600'}`}>Let</button>
-        <button type="button" disabled title="Kommer snart" className="px-4 py-2 bg-slate-100 text-slate-400 font-semibold text-sm rounded-xl cursor-not-allowed">Mellem</button>
+        <button type="button" aria-pressed={difficulty === 'medium'} onClick={() => startNewGame('medium')} className={`px-4 py-2 font-bold text-sm rounded-xl shadow ${difficulty === 'medium' ? 'bg-pink-500 text-white' : 'bg-slate-100 text-slate-600'}`}>Mellem</button>
         <button type="button" aria-pressed={difficulty === 'hard'} onClick={() => startNewGame('hard')} className={`px-4 py-2 font-bold text-sm rounded-xl shadow ${difficulty === 'hard' ? 'bg-pink-500 text-white' : 'bg-slate-100 text-slate-600'}`}>Svær</button>
       </div>
 
@@ -327,7 +400,7 @@ function App() {
 
       <div className="flex justify-between w-full max-w-md px-2">
         <button type="button" onClick={() => setDigitColorStates({})} className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold text-xs rounded-xl shadow transition border border-purple-300 flex items-center gap-1">🧹 Nulstil farver</button>
-        <button type="button" onClick={startNewGame} className="px-4 py-2 bg-pink-500 hover:bg-pink-600 active:bg-pink-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-1 border-b-2 border-pink-700"><span>✨ Næste opgave</span> ➔</button>
+        <button type="button" onClick={() => startNewGame()} className="px-4 py-2 bg-pink-500 hover:bg-pink-600 active:bg-pink-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-1 border-b-2 border-pink-700"><span>✨ Næste opgave</span> ➔</button>
       </div>
 
       {showWinModal && (
@@ -337,7 +410,7 @@ function App() {
             <h2 id="win-title" className="text-2xl font-bold text-pink-600 mb-2">Super Flot!</h2>
             <p className="text-slate-600 font-medium mb-4">Du knækkede koden og låste op!</p>
             <div className="inline-block bg-purple-100 border-2 border-purple-300 text-purple-900 font-bold text-2xl px-6 py-2 rounded-2xl mb-6">Koden var: {game.secretCode.join('')}</div>
-            <button type="button" onClick={startNewGame} className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold text-lg rounded-2xl shadow-lg border-b-4 border-purple-800 active:border-b-0 transition">Prøv en ny kode! 🚀</button>
+            <button type="button" onClick={() => startNewGame()} className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold text-lg rounded-2xl shadow-lg border-b-4 border-purple-800 active:border-b-0 transition">Prøv en ny kode! 🚀</button>
           </div>
         </div>
       )}
