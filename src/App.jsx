@@ -114,28 +114,28 @@ function generateCluesForCode(code) {
     attempts += 1;
 
     const clue1Guess = createGuessWithMatches(code, 1, 0);
-    if (clue1Guess) clues.push({ guess: clue1Guess, text: 'ét tal er korrekt og placeret rigtigt.' });
+    if (clue1Guess) clues.push({ guess: clue1Guess, text: 'Ét tal er korrekt og placeret rigtigt.' });
 
     if (Math.random() > 0.5) {
       const clue2Guess = createGuessWithMatches(code, 0, 2);
-      if (clue2Guess) clues.push({ guess: clue2Guess, text: 'to tal er korrekte, men begge placeret forkert.' });
+      if (clue2Guess) clues.push({ guess: clue2Guess, text: 'To tal er korrekte, men begge placeret forkert.' });
     } else {
       const clue2Guess = createGuessWithMatches(code, 1, 1);
-      if (clue2Guess) clues.push({ guess: clue2Guess, text: 'to tal er korrekte, men kun ét er placeret korrekt.' });
+      if (clue2Guess) clues.push({ guess: clue2Guess, text: 'To tal er korrekte, men kun ét er placeret korrekt.' });
     }
 
     const clue3Guess = createGuessWithMatches(code, 0, 3) || createGuessWithMatches(code, 0, 2);
     if (clue3Guess) {
       if (getCorrectCount(code, clue3Guess) === 3) {
-        clues.push({ guess: clue3Guess, text: 'tre tal er korrekte, men ingen er placeret rigtigt.' });
+        clues.push({ guess: clue3Guess, text: 'Tre tal er korrekte, men ingen er placeret rigtigt.' });
       } else {
-        clues.push({ guess: clue3Guess, text: 'to tal er korrekte, men ingen er placeret rigtigt.' });
+        clues.push({ guess: clue3Guess, text: 'To tal er korrekte, men ingen er placeret rigtigt.' });
       }
     }
 
     const wrongDigits = ALL_DIGITS.filter((digit) => !code.includes(digit));
     const clue4Guess = shuffleArray(wrongDigits).slice(0, 3);
-    if (clue4Guess.length === code.length) clues.push({ guess: clue4Guess, text: 'ingen tal er korrekte.' });
+    if (clue4Guess.length === code.length) clues.push({ guess: clue4Guess, text: 'Ingen tal er korrekte.' });
 
     if (clues.length >= 4) break;
   }
@@ -146,11 +146,11 @@ function generateCluesForCode(code) {
 function generateHardCluesForCode(code) {
   const excludedDigits = shuffleArray(ALL_DIGITS.filter((digit) => !code.includes(digit))).slice(0, code.length);
   const clueRules = [
-    { rightSpot: 1, wrongSpot: 1, text: 'to tal er korrekte, og ét af dem er placeret rigtigt.' },
-    { rightSpot: 0, wrongSpot: 2, text: 'to tal er korrekte, men begge placeret forkert.' },
-    { rightSpot: 2, wrongSpot: 0, text: 'to tal er korrekte, og de er begge placeret korrekt.' },
-    { rightSpot: 0, wrongSpot: 3, text: 'tre tal er korrekte, men ingen er placeret rigtigt.' },
-    { rightSpot: 0, wrongSpot: 0, text: 'ingen tal er korrekte.' },
+    { rightSpot: 1, wrongSpot: 1, text: 'To tal er korrekte, og ét af dem er placeret rigtigt.' },
+    { rightSpot: 0, wrongSpot: 2, text: 'To tal er korrekte, men begge placeret forkert.' },
+    { rightSpot: 2, wrongSpot: 0, text: 'To tal er korrekte, og de er begge placeret korrekt.' },
+    { rightSpot: 0, wrongSpot: 3, text: 'Tre tal er korrekte, men ingen er placeret rigtigt.' },
+    { rightSpot: 0, wrongSpot: 0, text: 'Ingen tal er korrekte.' },
   ];
 
   let attempts = 0;
@@ -182,10 +182,10 @@ function generateHardCluesForCode(code) {
 function generateMediumCluesForCode(code) {
   const excludedDigits = shuffleArray(ALL_DIGITS.filter((digit) => !code.includes(digit))).slice(0, code.length);
   const clueRules = [
-    { rightSpot: 1, wrongSpot: 0, text: 'ét tal er korrekt og placeret rigtigt.' },
-    { rightSpot: 1, wrongSpot: 1, text: 'to tal er korrekte, og ét af dem er placeret rigtigt.' },
-    { rightSpot: 2, wrongSpot: 0, text: 'to tal er korrekte, og de er begge placeret korrekt.' },
-    { rightSpot: 0, wrongSpot: 3, text: 'tre tal er korrekte, men ingen er placeret rigtigt.' },
+    { rightSpot: 1, wrongSpot: 0, text: 'Ét tal er korrekt og placeret rigtigt.' },
+    { rightSpot: 1, wrongSpot: 1, text: 'To tal er korrekte, og ét af dem er placeret rigtigt.' },
+    { rightSpot: 2, wrongSpot: 0, text: 'To tal er korrekte, og de er begge placeret korrekt.' },
+    { rightSpot: 0, wrongSpot: 3, text: 'Tre tal er korrekte, men ingen er placeret rigtigt.' },
   ];
   const clues = [];
 
@@ -203,7 +203,7 @@ function generateMediumCluesForCode(code) {
 
   clues.push({
     guess: excludedDigits,
-    text: 'ingen tal er korrekte.',
+    text: 'Ingen tal er korrekte.',
     rightSpot: 0,
     wrongSpot: 0,
   });
@@ -329,10 +329,9 @@ function App() {
       <header className="text-center mb-4 w-full">
         <div className="inline-block bg-white/80 backdrop-blur px-5 py-2 rounded-full shadow-md border-2 border-pink-300 mb-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-pink-600 flex items-center justify-center gap-2">
-            <span>🔐</span> Bryd Koden! <span>✨</span>
+            <span>🔐</span> Bryd koden! <span>✨</span>
           </h1>
         </div>
-        <p className="text-xs sm:text-sm text-purple-700 font-medium">Brug din logik til at åbne den hemmelige lås</p>
       </header>
 
       <div role="group" aria-label="Sværhedsgrad" className="inline-flex gap-1.5 bg-white/80 p-1.5 rounded-2xl shadow-md border border-purple-200 mb-4">
@@ -343,7 +342,7 @@ function App() {
 
       <div className="w-full bg-white/90 backdrop-blur rounded-2xl p-3 shadow-lg border-2 border-purple-200 mb-4">
         <div className="text-xs font-semibold text-purple-800 mb-2 text-center flex items-center justify-center gap-1">
-          💡 <span>Klik på tallene i sporet for at skifte farve:</span>
+          💡 <span>Klik på tallene for at skifte farve</span>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold">
           <div className="flex items-center justify-center gap-1 bg-green-100 border border-green-400 text-green-800 py-1.5 px-2 rounded-xl"><span className="w-3 h-3 rounded-full bg-green-500 inline-block" /><span>Rigtig plads</span></div>
@@ -412,7 +411,7 @@ function App() {
 
       <div className="flex justify-between w-full max-w-md px-2">
         <button type="button" onClick={() => setDigitColorStates({})} className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold text-xs rounded-xl shadow transition border border-purple-300 flex items-center gap-1">🧹 Nulstil farver</button>
-        <button type="button" onClick={() => startNewGame()} className="px-4 py-2 bg-pink-500 hover:bg-pink-600 active:bg-pink-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-1 border-b-2 border-pink-700"><span>✨ Næste opgave</span> ➔</button>
+        <button type="button" onClick={() => startNewGame()} className="px-4 py-2 bg-pink-500 hover:bg-pink-600 active:bg-pink-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-1 border-b-2 border-pink-700"><span>✨ Ny kode</span> ➔</button>
       </div>
 
       {showWinModal && (
