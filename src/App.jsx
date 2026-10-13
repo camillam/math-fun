@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import CodeGame from './games/CodeGame.jsx';
+import PizzaGame from './games/PizzaGame.jsx';
 
 const GAME_CATALOG = [
   {
@@ -8,6 +9,13 @@ const GAME_CATALOG = [
     description: 'Knæk den hemmelige kode.',
     icon: '🔐',
     component: CodeGame,
+  },
+  {
+    slug: 'pizza',
+    title: 'Brøk-Pizzaen',
+    description: 'Skær pizzaen i lige store stykker.',
+    icon: '🍕',
+    component: PizzaGame,
   },
 ];
 
@@ -21,13 +29,13 @@ function GameHome({ onNavigate }) {
         <h1 className="text-3xl sm:text-4xl font-bold text-pink-600">Vælg et spil</h1>
       </header>
 
-      <nav aria-label="Spil" className="w-full flex justify-center">
+      <nav aria-label="Spil" className="grid w-full max-w-xs grid-cols-1 gap-3">
         {GAME_CATALOG.map((game) => (
           <a
             key={game.slug}
             href={`${BASE_PATH}/${game.slug}`}
             onClick={(event) => onNavigate(event, `${BASE_PATH}/${game.slug}`)}
-            className="group flex w-full max-w-xs items-center gap-4 rounded-2xl border-2 border-purple-200 bg-white/90 p-4 shadow-lg transition hover:-translate-y-1 hover:border-pink-300 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pink-500"
+            className="group flex w-full items-center gap-4 rounded-2xl border-2 border-purple-200 bg-white/90 p-4 shadow-lg transition hover:-translate-y-1 hover:border-pink-300 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pink-500"
           >
             <span aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-3xl shadow-inner">
               {game.icon}
