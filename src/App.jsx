@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import CodeGame from './games/CodeGame.jsx';
+import SquareMaze from './games/SquareMaze.jsx';
 
 const GAME_CATALOG = [
   {
@@ -8,6 +9,13 @@ const GAME_CATALOG = [
     description: 'Knæk den hemmelige kode.',
     icon: '🔐',
     component: CodeGame,
+  },
+  {
+    slug: 'square-maze',
+    title: 'Kvadrat labyrint',
+    description: 'Kommer snart.',
+    icon: '🧩',
+    component: SquareMaze,
   },
 ];
 
@@ -21,23 +29,40 @@ function GameHome({ onNavigate }) {
         <h1 className="text-3xl sm:text-4xl font-bold text-pink-600">Vælg et spil</h1>
       </header>
 
-      <nav aria-label="Spil" className="w-full flex justify-center">
+      <nav aria-label="Spil" className="w-full flex flex-col items-center gap-4">
         {GAME_CATALOG.map((game) => (
-          <a
-            key={game.slug}
-            href={`${BASE_PATH}/${game.slug}`}
-            onClick={(event) => onNavigate(event, `${BASE_PATH}/${game.slug}`)}
-            className="group flex w-full max-w-xs items-center gap-4 rounded-2xl border-2 border-purple-200 bg-white/90 p-4 shadow-lg transition hover:-translate-y-1 hover:border-pink-300 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pink-500"
-          >
-            <span aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-3xl shadow-inner">
-              {game.icon}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-lg font-bold text-purple-900">{game.title}</span>
-              <span className="block text-sm text-slate-600">{game.description}</span>
-            </span>
-            <span aria-hidden="true" className="shrink-0 text-xl font-bold text-pink-500">→</span>
-          </a>
+          game.component ? (
+            <a
+              key={game.slug}
+              href={`${BASE_PATH}/${game.slug}`}
+              onClick={(event) => onNavigate(event, `${BASE_PATH}/${game.slug}`)}
+              className="group flex w-full max-w-xs items-center gap-4 rounded-2xl border-2 border-purple-200 bg-white/90 p-4 shadow-lg transition hover:-translate-y-1 hover:border-pink-300 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-pink-500"
+            >
+              <span aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-3xl shadow-inner">
+                {game.icon}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-lg font-bold text-purple-900">{game.title}</span>
+                <span className="block text-sm text-slate-600">{game.description}</span>
+              </span>
+              <span aria-hidden="true" className="shrink-0 text-xl font-bold text-pink-500">→</span>
+            </a>
+          ) : (
+            <button
+              key={game.slug}
+              type="button"
+              disabled
+              className="flex w-full max-w-xs cursor-not-allowed items-center gap-4 rounded-2xl border-2 border-purple-200 bg-white/90 p-4 text-left opacity-70 shadow-lg"
+            >
+              <span aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-3xl shadow-inner">
+                {game.icon}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-lg font-bold text-purple-900">{game.title}</span>
+                <span className="block text-sm text-slate-600">{game.description}</span>
+              </span>
+            </button>
+          )
         ))}
       </nav>
     </main>
@@ -46,7 +71,7 @@ function GameHome({ onNavigate }) {
 
 function App() {
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname.replace(/\/$/, '') || '/');
-  const activeGame = GAME_CATALOG.find((game) => currentPath === `${BASE_PATH}/${game.slug}`);
+  const activeGame = GAME_CATALOG.find((game) => game.component && currentPath === `${BASE_PATH}/${game.slug}`);
 
   useEffect(() => {
     const syncPath = () => setCurrentPath(window.location.pathname.replace(/\/$/, '') || '/');
@@ -66,12 +91,14 @@ function App() {
   const Game = activeGame.component;
   return (
     <>
-      <div className="mx-auto max-w-md px-4 pt-4">
-        <a href={`${BASE_PATH}/`} onClick={(event) => navigate(event, `${BASE_PATH}/`)} className="inline-flex min-h-10 items-center font-semibold text-purple-800 hover:text-pink-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500">
-          <span aria-hidden="true" className="mr-2">←</span> Alle spil
-        </a>
-      </div>
-      <Game />
+      {activeGame.slug !== 'square-maze' && (
+        <div className="mx-auto max-w-md px-4 pt-4">
+          <a href={`${BASE_PATH}/`} onClick={(event) => navigate(event, `${BASE_PATH}/`)} className="inline-flex min-h-10 items-center font-semibold text-purple-800 hover:text-pink-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500">
+            <span aria-hidden="true" className="mr-2">←</span> Alle spil
+          </a>
+        </div>
+      )}
+      <Game onNavigate={navigate} />
     </>
   );
 }
